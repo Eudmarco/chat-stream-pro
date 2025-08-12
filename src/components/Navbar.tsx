@@ -1,7 +1,8 @@
 import { Link, NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-
+import { useAuth } from "@/hooks/useAuth";
 const Navbar = () => {
+  const { session, signOut } = useAuth();
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
     isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground transition-colors";
 
@@ -31,12 +32,20 @@ const Navbar = () => {
           </NavLink>
         </nav>
         <div className="flex items-center gap-2">
-          <Button variant="outline" asChild>
-            <Link to="/dashboard">Entrar</Link>
-          </Button>
-          <Button variant="hero" asChild>
-            <Link to="/precos">Começar</Link>
-          </Button>
+          {session ? (
+            <Button variant="outline" onClick={signOut}>
+              Sair
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline" asChild>
+                <Link to="/auth">Entrar</Link>
+              </Button>
+              <Button variant="hero" asChild>
+                <Link to="/precos">Começar</Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </header>
