@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 const Auth = () => {
   const title = "Entrar ou criar conta | WhatsAPI SaaS";
@@ -67,9 +68,12 @@ const Auth = () => {
                   {loading ? (mode === 'login' ? 'Entrando...' : 'Enviando...') : (mode === 'login' ? 'Entrar' : 'Criar conta')}
                 </Button>
               </form>
-              <div className="text-sm text-muted-foreground mt-4">
+              <div className="text-sm text-muted-foreground mt-4 space-y-2">
                 {mode === 'login' ? (
-                  <button className="underline" onClick={() => setMode('signup')}>Não tem conta? Cadastre-se</button>
+                  <>
+                    <button className="underline block" onClick={() => setMode('signup')}>Não tem conta? Cadastre-se</button>
+                    <Link to="/reset-password" className="underline block hover:text-foreground">Esqueci minha senha</Link>
+                  </>
                 ) : (
                   <button className="underline" onClick={() => setMode('login')}>Já tem conta? Entrar</button>
                 )}
