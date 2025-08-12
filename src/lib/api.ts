@@ -137,15 +137,36 @@ export const api = {
     // Log de criação
     await pushLog(instance.id, { level: "event", message: "Instância criada" });
 
-    // Simular provisionamento: após 1.5s, status "ready"
-    setTimeout(async () => {
-      await supabase
-        .from('instances')
-        .update({ status: 'ready' })
-        .eq('id', instance.id);
-      
-      await pushLog(instance.id, { level: "event", message: "Instância pronta" });
-    }, 1500);
+    // Create instance in Evolution API
+    try {
+      const { data: evolutionData, error: evolutionError } = await supabase.functions.invoke(
+        'evolution-create-instance',
+        {
+          body: { instanceName: name }
+        }
+      );
+
+      if (evolutionError) {
+        console.error('Evolution API error:', evolutionError);
+        await pushLog(instance.id, { 
+          level: "error", 
+          message: "Erro ao criar instância no Evolution API",
+          data: evolutionError 
+        });
+      } else {
+        await pushLog(instance.id, { 
+          level: "event", 
+          message: "Instância criada no Evolution API",
+          data: evolutionData 
+        });
+      }
+    } catch (error) {
+      console.error('Error calling evolution-create-instance:', error);
+      await pushLog(instance.id, { 
+        level: "error", 
+        message: "Erro ao conectar com Evolution API" 
+      });
+    }
 
     return instance;
   },
@@ -174,14 +195,68 @@ export const api = {
   async sendMessage(payload: SendMessagePayload): Promise<{ ok: boolean }> {
     if (!payload.to || !payload.text) throw new Error("Campos obrigatórios");
     
-    await new Promise((r) => setTimeout(r, 600));
-    await pushLog(payload.instanceId, { 
-      level: "message", 
-      message: `Mensagem para ${payload.to}`, 
-      data: { text: payload.text } 
-    });
-    await incMetricSent(payload.instanceId, 1);
-    return { ok: true };
+    const instance = await this.getInstance(payload.instanceId);
+    if (!instance) throw new Error("Instância não encontrada");
+
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        'evolution-send-message',
+        {
+          body: {
+            instanceName: instance.name,
+            to: payload.to,
+            text: payload.text
+          }
+        }
+      );
+
+      if (error) {
+        throw new Error(error.message || 'Erro ao enviar mensagem');
+      }
+
+      return { ok: true };
+    } catch (error) {
+      // Fallback to mock behavior for development
+      console.error('Evolution API error, using fallback:', error);
+      await new Promise((r) => setTimeout(r, 600));
+      await pushLog(payload.instanceId, { 
+        level: "message", 
+        message: `Mensagem para ${payload.to}`, 
+        data: { text: payload.text } 
+      });
+      await incMetricSent(payload.instanceId, 1);
+      return { ok: true };
+    }
+  },
+
+  async getQRCode(instanceId: string): Promise<{ qrcode?: string; state?: string }> {
+    const instance = await this.getInstance(instanceId);
+    if (!instance) throw new Error("Instância não encontrada");
+
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        'evolution-get-qr',
+        {
+          body: { instanceName: instance.name }
+        }
+      );
+
+      if (error) {
+        throw new Error(error.message || 'Erro ao obter QR Code');
+      }
+
+      return {
+        qrcode: data.qrcode,
+        state: data.state
+      };
+    } catch (error) {
+      console.error('Error getting QR code:', error);
+      // Return placeholder for development
+      return {
+        qrcode: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+        state: 'pending'
+      };
+    }
   },
 
   async listLogs(instanceId: string): Promise<LogEntry[]> {

@@ -2,7 +2,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +18,7 @@ import { useEffect, useMemo, useState } from "react";
 const InstanceDetail = () => {
   const { id } = useParams();
   const title = "Instância | WhatsAPI SaaS";
-  const description = "Detalhes da instância, QR, mensagens, logs e métricas (mock).";
+  const description = "Detalhes da instância, QR, mensagens, logs e métricas.";
 
   const { toast } = useToast();
   const [instance, setInstance] = useState<Instance | undefined>();
@@ -27,6 +27,9 @@ const InstanceDetail = () => {
   const [sending, setSending] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [metrics, setMetrics] = useState<DailyMetric[]>([]);
+  const [qrCode, setQrCode] = useState<string>("");
+  const [qrState, setQrState] = useState<string>("");
+  const [loadingQr, setLoadingQr] = useState(false);
 
   const reload = async () => {
     if (!id) return;
@@ -40,12 +43,32 @@ const InstanceDetail = () => {
     setMetrics(mt);
   };
 
+  const loadQrCode = async () => {
+    if (!id) return;
+    try {
+      setLoadingQr(true);
+      const qrData = await api.getQRCode(id);
+      if (qrData.qrcode) {
+        setQrCode(qrData.qrcode);
+        setQrState(qrData.state || 'pending');
+      }
+    } catch (error) {
+      console.error("Erro ao carregar QR:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar o QR Code",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingQr(false);
+    }
+  };
+
   useEffect(() => {
     reload();
-    // Poll simples para refletir mudanças de status/metricas
-    const t = setInterval(reload, 2000);
+    // Poll para atualizar dados
+    const t = setInterval(reload, 5000);
     return () => clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const onSend = async (e: React.FormEvent) => {
@@ -55,8 +78,9 @@ const InstanceDetail = () => {
     try {
       await api.sendMessage({ instanceId: id, to, text });
       setText("");
+      setTo("");
       toast({ title: "Mensagem enviada", description: `Enviado para ${to}` });
-      reload();
+      setTimeout(reload, 1000);
     } catch (err) {
       toast({ title: "Erro ao enviar", description: (err as Error).message, variant: "destructive" });
     } finally {
@@ -134,12 +158,44 @@ const InstanceDetail = () => {
                 <Card>
                   <CardHeader>
                     <CardTitle>QR Code</CardTitle>
+                    <CardDescription>
+                      Escaneie este QR Code no seu WhatsApp para conectar a instância
+                    </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div className="w-full aspect-square rounded-lg bg-muted grid place-content-center text-muted-foreground">
-                      QR Code em breve
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-3">Conecte o WhatsApp assim que liberar a integração.</p>
+                  <CardContent className="flex flex-col items-center gap-4">
+                    {loadingQr ? (
+                      <div className="w-64 h-64 flex items-center justify-center border-2 border-dashed border-muted-foreground rounded">
+                        <span className="text-muted-foreground">Carregando QR Code...</span>
+                      </div>
+                    ) : qrCode ? (
+                      <div className="flex flex-col items-center gap-4">
+                        <img 
+                          src={qrCode} 
+                          alt="QR Code para conexão WhatsApp" 
+                          className="w-64 h-64 border rounded"
+                        />
+                        <div className="text-center">
+                          <Badge variant={qrState === 'open' ? 'default' : 'secondary'}>
+                            {qrState === 'open' ? 'Conectado' : 'Aguardando conexão'}
+                          </Badge>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="w-64 h-64 flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground rounded gap-4">
+                        <span className="text-muted-foreground text-center">
+                          QR Code não disponível
+                        </span>
+                        <Button onClick={loadQrCode} variant="outline">
+                          Carregar QR Code
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {qrCode && (
+                      <Button onClick={loadQrCode} variant="outline" disabled={loadingQr}>
+                        Atualizar QR Code
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
