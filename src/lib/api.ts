@@ -60,6 +60,38 @@ const pushLog = async (instanceId: string, partial: Omit<LogEntry, "id" | "at" |
   } as LogEntry;
 };
 
+const incUsageCounter = async (type: 'instances' | 'messages' | 'webhooks', amount = 1) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+
+  const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+  const field = type === 'instances' ? 'instances_created' : 
+                type === 'messages' ? 'messages_sent' : 'webhooks_created';
+
+  // Get current usage
+  const { data: existing } = await supabase
+    .from('usage_tracking')
+    .select(field)
+    .eq('user_id', user.id)
+    .eq('month', currentMonth)
+    .single();
+
+  const newValue = (existing?.[field] || 0) + amount;
+
+  // Upsert usage data
+  const { error } = await supabase
+    .from('usage_tracking')
+    .upsert({
+      user_id: user.id,
+      month: currentMonth,
+      [field]: newValue
+    }, {
+      onConflict: 'user_id,month'
+    });
+
+  if (error) throw error;
+};
+
 const incMetricSent = async (instanceId: string, amount = 1) => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('User not authenticated');
@@ -91,6 +123,66 @@ const incMetricSent = async (instanceId: string, amount = 1) => {
 };
 
 export const api = {
+  async checkLimits(type: 'instances' | 'messages' | 'webhooks'): Promise<{canProceed: boolean, reason?: string}> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { canProceed: false, reason: 'Usuário não autenticado' };
+
+    try {
+      // Get user's subscription info
+      const { data: subscriber } = await supabase
+        .from('subscribers')
+        .select('subscribed, subscription_tier')
+        .eq('user_id', user.id)
+        .single();
+
+      const userTier = subscriber?.subscribed ? subscriber.subscription_tier || 'Basic' : 'free';
+
+      // Get limits for tier
+      const { data: limits } = await supabase
+        .from('subscription_limits')
+        .select('*')
+        .eq('tier', userTier)
+        .single();
+
+      if (!limits) return { canProceed: false, reason: 'Limites não encontrados' };
+
+      // Get current usage
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      const { data: usage } = await supabase
+        .from('usage_tracking')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('month', currentMonth)
+        .single();
+
+      const currentUsage = usage || { instances_created: 0, messages_sent: 0, webhooks_created: 0 };
+
+      // Check specific limit
+      switch (type) {
+        case 'instances':
+          if (currentUsage.instances_created >= limits.max_instances) {
+            return { canProceed: false, reason: `Limite de instâncias atingido (${limits.max_instances})` };
+          }
+          break;
+        case 'messages':
+          if (currentUsage.messages_sent >= limits.max_messages_per_month) {
+            return { canProceed: false, reason: `Limite de mensagens atingido (${limits.max_messages_per_month})` };
+          }
+          break;
+        case 'webhooks':
+          if (currentUsage.webhooks_created >= limits.max_webhooks) {
+            return { canProceed: false, reason: `Limite de webhooks atingido (${limits.max_webhooks})` };
+          }
+          break;
+      }
+
+      return { canProceed: true };
+    } catch (error) {
+      console.error('Error checking limits:', error);
+      return { canProceed: false, reason: 'Erro ao verificar limites' };
+    }
+  },
+
   async listInstances(): Promise<Instance[]> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
@@ -112,6 +204,12 @@ export const api = {
   },
 
   async createInstance(name: string): Promise<Instance> {
+    // Check limits first
+    const limitCheck = await this.checkLimits('instances');
+    if (!limitCheck.canProceed) {
+      throw new Error(limitCheck.reason || 'Limite atingido');
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
@@ -133,6 +231,9 @@ export const api = {
       status: data.status as InstanceStatus,
       createdAt: data.created_at
     };
+
+    // Increment usage counter
+    await incUsageCounter('instances', 1);
 
     // Log de criação
     await pushLog(instance.id, { level: "event", message: "Instância criada" });
@@ -194,6 +295,12 @@ export const api = {
 
   async sendMessage(payload: SendMessagePayload): Promise<{ ok: boolean }> {
     if (!payload.to || !payload.text) throw new Error("Campos obrigatórios");
+
+    // Check limits first
+    const limitCheck = await this.checkLimits('messages');
+    if (!limitCheck.canProceed) {
+      throw new Error(limitCheck.reason || 'Limite de mensagens atingido');
+    }
     
     const instance = await this.getInstance(payload.instanceId);
     if (!instance) throw new Error("Instância não encontrada");
@@ -214,6 +321,9 @@ export const api = {
         throw new Error(error.message || 'Erro ao enviar mensagem');
       }
 
+      // Increment usage counter
+      await incUsageCounter('messages', 1);
+
       return { ok: true };
     } catch (error) {
       // Fallback to mock behavior for development
@@ -225,6 +335,8 @@ export const api = {
         data: { text: payload.text } 
       });
       await incMetricSent(payload.instanceId, 1);
+      // Still increment usage counter for fallback
+      await incUsageCounter('messages', 1);
       return { ok: true };
     }
   },
@@ -323,6 +435,12 @@ export const api = {
   },
 
   async addWebhook(url: string): Promise<Webhook> {
+    // Check limits first
+    const limitCheck = await this.checkLimits('webhooks');
+    if (!limitCheck.canProceed) {
+      throw new Error(limitCheck.reason || 'Limite de webhooks atingido');
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
@@ -336,6 +454,9 @@ export const api = {
       .single();
 
     if (error) throw error;
+
+    // Increment usage counter
+    await incUsageCounter('webhooks', 1);
 
     return {
       id: data.id,

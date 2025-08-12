@@ -153,6 +153,66 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_limits: {
+        Row: {
+          created_at: string
+          id: string
+          max_instances: number
+          max_messages_per_month: number
+          max_webhooks: number
+          tier: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          max_instances?: number
+          max_messages_per_month?: number
+          max_webhooks?: number
+          tier: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          max_instances?: number
+          max_messages_per_month?: number
+          max_webhooks?: number
+          tier?: string
+        }
+        Relationships: []
+      }
+      usage_tracking: {
+        Row: {
+          created_at: string
+          id: string
+          instances_created: number
+          messages_sent: number
+          month: string
+          updated_at: string
+          user_id: string
+          webhooks_created: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          instances_created?: number
+          messages_sent?: number
+          month: string
+          updated_at?: string
+          user_id: string
+          webhooks_created?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          instances_created?: number
+          messages_sent?: number
+          month?: string
+          updated_at?: string
+          user_id?: string
+          webhooks_created?: number
+        }
+        Relationships: []
+      }
       webhooks: {
         Row: {
           created_at: string

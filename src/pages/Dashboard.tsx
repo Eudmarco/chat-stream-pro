@@ -2,18 +2,19 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/hooks/useAuth";
-import { CreditCard, RefreshCw } from "lucide-react";
+import UsageLimitsCard from "@/components/UsageLimitsCard";
+import { Crown, User, RefreshCw } from "lucide-react";
 
 const Dashboard = () => {
   const title = "Dashboard | WhatsAPI SaaS";
   const description = "Acesse suas instâncias, métricas e configurações. Faça login para começar.";
   
   const { user } = useAuth();
-  const { subscribed, subscription_tier, subscription_end, loading, checkSubscription, openCustomerPortal } = useSubscription();
+  const { subscribed, subscription_tier, subscription_end, loading, checkSubscription, createCheckout, openCustomerPortal } = useSubscription();
 
   return (
     <div className="min-h-screen bg-background">
@@ -27,62 +28,94 @@ const Dashboard = () => {
           </p>
         </header>
 
-        <section className="mt-8 space-y-6">
-          {/* Subscription Status */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-              <CardTitle className="text-xl">Status da Assinatura</CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={checkSubscription}
-                disabled={loading}
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                Atualizar
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Plano atual:</span>
-                <Badge variant={subscribed ? "default" : "secondary"}>
-                  {subscription_tier || "Nenhum"}
-                </Badge>
-              </div>
-              
-              {subscribed && subscription_end && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Renovação:</span>
-                  <span className="text-sm">
-                    {new Date(subscription_end).toLocaleDateString('pt-BR')}
-                  </span>
+        <section className="mt-8">
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Subscription Status Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Crown className="h-5 w-5" />
+                  Status da Assinatura
+                </CardTitle>
+                <CardDescription>
+                  Informações do seu plano atual
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Plano Atual:</span>
+                  <Badge variant={subscribed ? "default" : "secondary"} className="capitalize">
+                    {subscribed ? subscription_tier || "Premium" : "Gratuito"}
+                  </Badge>
                 </div>
-              )}
-
-              <div className="flex gap-2">
-                {subscribed ? (
-                  <Button variant="outline" size="sm" onClick={openCustomerPortal}>
-                    <CreditCard className="h-4 w-4 mr-2" />
-                    Gerenciar Assinatura
-                  </Button>
-                ) : (
-                  <Button variant="hero" size="sm" onClick={() => window.location.href = '/precos'}>
-                    Assinar Agora
-                  </Button>
+                
+                {subscribed && subscription_end && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Renovação:</span>
+                    <span className="text-sm text-muted-foreground">
+                      {new Date(subscription_end).toLocaleDateString()}
+                    </span>
+                  </div>
                 )}
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Welcome Section */}
-          <Card>
+                <div className="flex gap-2 pt-2">
+                  {subscribed ? (
+                    <Button onClick={openCustomerPortal} variant="outline" className="flex-1">
+                      Gerenciar Assinatura
+                    </Button>
+                  ) : (
+                    <Button onClick={() => createCheckout('Premium')} className="flex-1">
+                      <Crown className="h-4 w-4 mr-2" />
+                      Fazer Upgrade
+                    </Button>
+                  )}
+                  <Button onClick={checkSubscription} variant="ghost" disabled={loading}>
+                    <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Usage Limits Card */}
+            <UsageLimitsCard />
+          </div>
+
+          {/* Welcome Card */}
+          <Card className="mt-6">
             <CardHeader>
-              <CardTitle>Bem-vindo, {user?.email}!</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Bem-vindo ao WhatsAPI SaaS
+              </CardTitle>
+              <CardDescription>
+                Sua plataforma completa para automação WhatsApp
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Em breve: suas instâncias, QR Codes e métricas. Por enquanto, gerencie sua assinatura acima.
+              <p className="text-sm text-muted-foreground mb-4">
+                Logado como: <span className="font-medium text-foreground">{user?.email}</span>
               </p>
+              
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="text-center p-4 bg-muted/50 rounded-lg">
+                  <h4 className="font-medium">Instâncias</h4>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Crie e gerencie suas instâncias WhatsApp
+                  </p>
+                </div>
+                <div className="text-center p-4 bg-muted/50 rounded-lg">
+                  <h4 className="font-medium">Mensagens</h4>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Envie mensagens automatizadas
+                  </p>
+                </div>
+                <div className="text-center p-4 bg-muted/50 rounded-lg">
+                  <h4 className="font-medium">Webhooks</h4>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Configure notificações em tempo real
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </section>
