@@ -4,21 +4,28 @@ import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 const tiers = [
   {
+    id: "basic",
     name: "Básico",
     price: "R$49/mês",
     features: ["1 instância", "2.000 mensagens/mês", "Suporte por email"],
     cta: "Começar",
   },
   {
+    id: "pro",
     name: "Pro",
     price: "R$149/mês",
     features: ["5 instâncias", "20.000 mensagens/mês", "Webhooks e métricas"],
     cta: "Assinar Pro",
   },
   {
+    id: "enterprise",
     name: "Enterprise",
     price: "Custom",
     features: ["Limites flexíveis", "SLA e suporte prioritário", "Onboarding assistido"],
@@ -29,6 +36,40 @@ const tiers = [
 const Pricing = () => {
   const title = "Planos e Preços | WhatsAPI SaaS";
   const description = "Escolha o plano ideal: Básico, Pro e Enterprise. API do WhatsApp com Evolution e Stripe.";
+  
+  const { session } = useAuth();
+  const { subscription_tier, createCheckout } = useSubscription();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState<string | null>(null);
+
+  const handleSubscribe = async (planId: string) => {
+    if (!session) {
+      window.location.href = '/auth';
+      return;
+    }
+
+    if (planId === 'enterprise') {
+      toast({
+        title: "Entre em contato",
+        description: "Para o plano Enterprise, entre em contato conosco diretamente.",
+      });
+      return;
+    }
+
+    try {
+      setLoading(planId);
+      const data = await createCheckout(planId);
+      window.open(data.url, '_blank');
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao criar checkout",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -59,7 +100,14 @@ const Pricing = () => {
                     </li>
                   ))}
                 </ul>
-                <Button variant="hero" className="w-full">{t.cta}</Button>
+                <Button 
+                  variant={subscription_tier === t.name ? "outline" : "hero"} 
+                  className="w-full"
+                  onClick={() => handleSubscribe(t.id)}
+                  disabled={loading === t.id || subscription_tier === t.name}
+                >
+                  {loading === t.id ? "Processando..." : subscription_tier === t.name ? "Plano Atual" : t.cta}
+                </Button>
               </CardContent>
             </Card>
           ))}
