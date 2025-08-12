@@ -8,6 +8,9 @@ import Index from "./pages/Index";
 import Pricing from "./pages/Pricing";
 import Docs from "./pages/Docs";
 import Dashboard from "./pages/Dashboard";
+import Instances from "./pages/Instances";
+import InstanceDetail from "./pages/InstanceDetail";
+import Webhooks from "./pages/Webhooks";
 import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
@@ -23,6 +26,9 @@ const App = () => (
             <Route path="/precos" element={<Pricing />} />
             <Route path="/documentacao" element={<Docs />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/instancias" element={<Instances />} />
+            <Route path="/instancias/:id" element={<InstanceDetail />} />
+            <Route path="/webhooks" element={<Webhooks />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

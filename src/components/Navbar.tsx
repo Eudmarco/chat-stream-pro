@@ -20,6 +20,12 @@ const Navbar = () => {
           <NavLink to="/documentacao" className={getNavCls} end>
             Documentação
           </NavLink>
+          <NavLink to="/instancias" className={getNavCls} end>
+            Instâncias
+          </NavLink>
+          <NavLink to="/webhooks" className={getNavCls} end>
+            Webhooks
+          </NavLink>
           <NavLink to="/dashboard" className={getNavCls} end>
             Dashboard
           </NavLink>
