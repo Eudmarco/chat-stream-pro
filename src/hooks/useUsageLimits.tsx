@@ -51,7 +51,7 @@ export const useUsageLimits = (): UsageLimitsData => {
         .from('subscription_limits')
         .select('*')
         .eq('tier', userTier)
-        .single();
+        .maybeSingle();
 
       if (limitsError) {
         throw new Error(`Erro ao buscar limites: ${limitsError.message}`);
@@ -65,7 +65,7 @@ export const useUsageLimits = (): UsageLimitsData => {
         .select('*')
         .eq('user_id', user.id)
         .eq('month', currentMonth)
-        .single();
+        .maybeSingle();
 
       if (usageError && usageError.code !== 'PGRST116') {
         throw new Error(`Erro ao buscar uso: ${usageError.message}`);

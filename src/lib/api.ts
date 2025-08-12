@@ -69,12 +69,12 @@ const incUsageCounter = async (type: 'instances' | 'messages' | 'webhooks', amou
                 type === 'messages' ? 'messages_sent' : 'webhooks_created';
 
   // Get current usage
-  const { data: existing } = await supabase
-    .from('usage_tracking')
-    .select(field)
-    .eq('user_id', user.id)
-    .eq('month', currentMonth)
-    .single();
+   const { data: existing } = await supabase
+     .from('usage_tracking')
+     .select(field)
+     .eq('user_id', user.id)
+     .eq('month', currentMonth)
+     .maybeSingle();
 
   const newValue = (existing?.[field] || 0) + amount;
 
@@ -99,12 +99,12 @@ const incMetricSent = async (instanceId: string, amount = 1) => {
   const today = new Date().toISOString().split('T')[0];
   
   // First try to get existing metric
-  const { data: existing } = await supabase
-    .from('metrics')
-    .select('sent')
-    .eq('instance_id', instanceId)
-    .eq('date', today)
-    .single();
+   const { data: existing } = await supabase
+     .from('metrics')
+     .select('sent')
+     .eq('instance_id', instanceId)
+     .eq('date', today)
+     .maybeSingle();
 
   const newSent = (existing?.sent || 0) + amount;
 
@@ -129,31 +129,31 @@ export const api = {
 
     try {
       // Get user's subscription info
-      const { data: subscriber } = await supabase
-        .from('subscribers')
-        .select('subscribed, subscription_tier')
-        .eq('user_id', user.id)
-        .single();
+       const { data: subscriber } = await supabase
+         .from('subscribers')
+         .select('subscribed, subscription_tier')
+         .eq('user_id', user.id)
+         .maybeSingle();
 
       const userTier = subscriber?.subscribed ? subscriber.subscription_tier || 'Basic' : 'free';
 
       // Get limits for tier
-      const { data: limits } = await supabase
-        .from('subscription_limits')
-        .select('*')
-        .eq('tier', userTier)
-        .single();
+       const { data: limits } = await supabase
+         .from('subscription_limits')
+         .select('*')
+         .eq('tier', userTier)
+         .maybeSingle();
 
       if (!limits) return { canProceed: false, reason: 'Limites não encontrados' };
 
       // Get current usage
       const currentMonth = new Date().toISOString().slice(0, 7);
-      const { data: usage } = await supabase
-        .from('usage_tracking')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('month', currentMonth)
-        .single();
+       const { data: usage } = await supabase
+         .from('usage_tracking')
+         .select('*')
+         .eq('user_id', user.id)
+         .eq('month', currentMonth)
+         .maybeSingle();
 
       const currentUsage = usage || { instances_created: 0, messages_sent: 0, webhooks_created: 0 };
 
