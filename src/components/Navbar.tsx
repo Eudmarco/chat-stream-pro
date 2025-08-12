@@ -1,7 +1,10 @@
-import { Link } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 const Navbar = () => {
+  const getNavCls = ({ isActive }: { isActive: boolean }) =>
+    isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground transition-colors";
+
   return (
     <header className="sticky top-0 z-40 w-full bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
       <div className="container mx-auto flex h-14 items-center justify-between">
@@ -10,16 +13,23 @@ const Navbar = () => {
           <span>WhatsAPI SaaS</span>
         </Link>
         <nav className="hidden md:flex items-center gap-6 text-sm">
-          <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors">Recursos</a>
-          <a href="#precos" className="text-muted-foreground hover:text-foreground transition-colors">Planos</a>
-          <a href="#docs" className="text-muted-foreground hover:text-foreground transition-colors">Documentação</a>
+          <Link to="/#features" className="text-muted-foreground hover:text-foreground transition-colors">Recursos</Link>
+          <NavLink to="/precos" className={getNavCls} end>
+            Planos
+          </NavLink>
+          <NavLink to="/documentacao" className={getNavCls} end>
+            Documentação
+          </NavLink>
+          <NavLink to="/dashboard" className={getNavCls} end>
+            Dashboard
+          </NavLink>
         </nav>
         <div className="flex items-center gap-2">
           <Button variant="outline" asChild>
-            <a href="#entrar">Entrar</a>
+            <Link to="/dashboard">Entrar</Link>
           </Button>
           <Button variant="hero" asChild>
-            <a href="#criar-conta">Começar</a>
+            <Link to="/precos">Começar</Link>
           </Button>
         </div>
       </div>

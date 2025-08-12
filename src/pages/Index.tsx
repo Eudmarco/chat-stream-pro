@@ -1,6 +1,8 @@
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import heroImage from "@/assets/hero-whatsapp.jpg";
 import { MessageSquare, CreditCard, Webhook } from "lucide-react";
 
@@ -26,10 +28,10 @@ const Index = () => {
               </p>
               <div className="flex flex-wrap gap-3">
                 <Button variant="hero" size="lg" asChild>
-                  <a href="#criar-conta">Começar agora</a>
+                  <Link to="/precos">Começar agora</Link>
                 </Button>
                 <Button variant="outline" size="lg" asChild>
-                  <a href="#docs">Ver documentação</a>
+                  <Link to="/documentacao">Ver documentação</Link>
                 </Button>
               </div>
               <ul className="text-sm text-muted-foreground grid grid-cols-2 gap-2 pt-2">
@@ -85,16 +87,7 @@ const Index = () => {
           </div>
         </section>
       </main>
-      <footer className="border-t py-8">
-        <div className="container mx-auto px-6 text-sm text-muted-foreground flex flex-col md:flex-row items-center justify-between gap-4">
-          <p>© {new Date().getFullYear()} WhatsAPI SaaS. Todos os direitos reservados.</p>
-          <nav className="flex gap-4">
-            <a href="#docs" className="hover:text-foreground">Docs</a>
-            <a href="#precos" className="hover:text-foreground">Preços</a>
-            <a href="#status" className="hover:text-foreground">Status</a>
-          </nav>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };
