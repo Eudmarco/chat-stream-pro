@@ -1,4 +1,7 @@
+import { supabase } from '@/integrations/supabase/client';
+
 export type InstanceStatus = "pending" | "ready" | "error";
+
 export interface Instance {
   id: string;
   name: string;
@@ -29,116 +32,241 @@ export interface SendMessagePayload {
   text: string;
 }
 
-const KEYS = {
-  instances: "mock.instances",
-  webhooks: "mock.webhooks",
-  logs: "mock.logs",
-  metrics: "mock.metrics",
+const pushLog = async (instanceId: string, partial: Omit<LogEntry, "id" | "at" | "instanceId">) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+
+  const { data, error } = await supabase
+    .from('logs')
+    .insert({
+      user_id: user.id,
+      instance_id: instanceId,
+      level: partial.level,
+      message: partial.message,
+      data: partial.data as any
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  
+  return {
+    id: data.id,
+    instanceId: data.instance_id,
+    level: data.level,
+    at: data.created_at,
+    message: data.message,
+    data: data.data
+  } as LogEntry;
 };
 
-const load = <T,>(key: string, fallback: T): T => {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-};
+const incMetricSent = async (instanceId: string, amount = 1) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
 
-const save = (key: string, value: unknown) => {
-  localStorage.setItem(key, JSON.stringify(value));
-};
+  const today = new Date().toISOString().split('T')[0];
+  
+  // First try to get existing metric
+  const { data: existing } = await supabase
+    .from('metrics')
+    .select('sent')
+    .eq('instance_id', instanceId)
+    .eq('date', today)
+    .single();
 
-const nowIso = () => new Date().toISOString();
+  const newSent = (existing?.sent || 0) + amount;
 
-const uid = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : Math.random().toString(36).slice(2));
+  const { error } = await supabase
+    .from('metrics')
+    .upsert({
+      user_id: user.id,
+      instance_id: instanceId,
+      date: today,
+      sent: newSent
+    }, {
+      onConflict: 'instance_id,date'
+    });
 
-type LogsMap = Record<string, LogEntry[]>;
-type MetricsMap = Record<string, DailyMetric[]>;
-
-const pushLog = (instanceId: string, partial: Omit<LogEntry, "id" | "at" | "instanceId">) => {
-  const map = load<LogsMap>(KEYS.logs, {});
-  const arr = map[instanceId] ?? [];
-  const entry: LogEntry = { id: uid(), instanceId, at: nowIso(), ...partial };
-  map[instanceId] = [entry, ...arr].slice(0, 200);
-  save(KEYS.logs, map);
-  return entry;
-};
-
-const incMetricSent = (instanceId: string, amount = 1) => {
-  const map = load<MetricsMap>(KEYS.metrics, {});
-  const today = new Date().toISOString().slice(0, 10);
-  const arr = map[instanceId] ?? [];
-  const idx = arr.findIndex((d) => d.date === today);
-  if (idx >= 0) arr[idx] = { ...arr[idx], sent: arr[idx].sent + amount };
-  else arr.unshift({ date: today, sent: amount });
-  map[instanceId] = arr.slice(0, 30);
-  save(KEYS.metrics, map);
+  if (error) throw error;
 };
 
 export const api = {
   async listInstances(): Promise<Instance[]> {
-    return load<Instance[]>(KEYS.instances, []);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('instances')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return data.map(item => ({
+      id: item.id,
+      name: item.name,
+      status: item.status as InstanceStatus,
+      createdAt: item.created_at
+    }));
   },
 
   async createInstance(name: string): Promise<Instance> {
-    const items = load<Instance[]>(KEYS.instances, []);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('instances')
+      .insert({
+        user_id: user.id,
+        name,
+        status: 'pending'
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
     const instance: Instance = {
-      id: uid(),
-      name,
-      status: "pending",
-      createdAt: nowIso(),
+      id: data.id,
+      name: data.name,
+      status: data.status as InstanceStatus,
+      createdAt: data.created_at
     };
-    const next = [instance, ...items];
-    save(KEYS.instances, next);
 
     // Log de criação
-    pushLog(instance.id, { level: "event", message: "Instância criada" });
+    await pushLog(instance.id, { level: "event", message: "Instância criada" });
 
-    // Simular provisionamento: após 1.5s, status "ready" (best-effort, não aguardamos)
-    setTimeout(() => {
-      const curr = load<Instance[]>(KEYS.instances, []);
-      const updated = curr.map((i) => (i.id === instance.id ? { ...i, status: "ready" } : i));
-      save(KEYS.instances, updated);
-      pushLog(instance.id, { level: "event", message: "Instância pronta" });
+    // Simular provisionamento: após 1.5s, status "ready"
+    setTimeout(async () => {
+      await supabase
+        .from('instances')
+        .update({ status: 'ready' })
+        .eq('id', instance.id);
+      
+      await pushLog(instance.id, { level: "event", message: "Instância pronta" });
     }, 1500);
 
     return instance;
   },
 
   async getInstance(id: string): Promise<Instance | undefined> {
-    const items = load<Instance[]>(KEYS.instances, []);
-    return items.find((i) => i.id === id);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('instances')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (error) return undefined;
+
+    return {
+      id: data.id,
+      name: data.name,
+      status: data.status as InstanceStatus,
+      createdAt: data.created_at
+    };
   },
 
   async sendMessage(payload: SendMessagePayload): Promise<{ ok: boolean }> {
     if (!payload.to || !payload.text) throw new Error("Campos obrigatórios");
+    
     await new Promise((r) => setTimeout(r, 600));
-    pushLog(payload.instanceId, { level: "message", message: `Mensagem para ${payload.to}`, data: { text: payload.text } });
-    incMetricSent(payload.instanceId, 1);
+    await pushLog(payload.instanceId, { 
+      level: "message", 
+      message: `Mensagem para ${payload.to}`, 
+      data: { text: payload.text } 
+    });
+    await incMetricSent(payload.instanceId, 1);
     return { ok: true };
   },
 
   async listLogs(instanceId: string): Promise<LogEntry[]> {
-    const map = load<Record<string, LogEntry[]>>(KEYS.logs, {});
-    return map[instanceId] ?? [];
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('logs')
+      .select('*')
+      .eq('instance_id', instanceId)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(200);
+
+    if (error) throw error;
+
+    return data.map(item => ({
+      id: item.id,
+      instanceId: item.instance_id,
+      level: item.level as LogEntry['level'],
+      at: item.created_at,
+      message: item.message,
+      data: item.data
+    }));
   },
 
   async listMetrics(instanceId: string): Promise<DailyMetric[]> {
-    const map = load<Record<string, DailyMetric[]>>(KEYS.metrics, {});
-    return map[instanceId] ?? [];
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('metrics')
+      .select('*')
+      .eq('instance_id', instanceId)
+      .eq('user_id', user.id)
+      .order('date', { ascending: false })
+      .limit(30);
+
+    if (error) throw error;
+
+    return data.map(item => ({
+      date: item.date,
+      sent: item.sent
+    }));
   },
 
   async listWebhooks(): Promise<Webhook[]> {
-    return load<Webhook[]>(KEYS.webhooks, []);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('webhooks')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return data.map(item => ({
+      id: item.id,
+      url: item.url,
+      createdAt: item.created_at
+    }));
   },
 
   async addWebhook(url: string): Promise<Webhook> {
-    const items = load<Webhook[]>(KEYS.webhooks, []);
-    const webhook: Webhook = { id: uid(), url, createdAt: nowIso() };
-    const next = [webhook, ...items];
-    save(KEYS.webhooks, next);
-    return webhook;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('webhooks')
+      .insert({
+        user_id: user.id,
+        url
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return {
+      id: data.id,
+      url: data.url,
+      createdAt: data.created_at
+    };
   },
 };
 
