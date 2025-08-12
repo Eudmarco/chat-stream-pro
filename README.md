@@ -1,73 +1,186 @@
-# Welcome to your Lovable project
+# WhatsAPI - Plataforma SaaS para WhatsApp
 
-## Project info
+## 📱 Sobre o Projeto
 
-**URL**: https://lovable.dev/projects/6a122baa-b7b1-47b2-b198-0b8fe0333bbf
+WhatsAPI é uma plataforma SaaS completa que permite integração fácil e eficiente com WhatsApp através da Evolution API. Com interface moderna e funcionalidades avançadas de gerenciamento de instâncias, mensagens e webhooks.
 
-## How can I edit this code?
+### ✨ Funcionalidades Principais
 
-There are several ways of editing your application.
+- 🔐 **Autenticação Completa** - Sistema de login/registro com Supabase Auth
+- 💳 **Pagamentos Integrados** - Planos de assinatura via Stripe
+- 📱 **Gestão de Instâncias** - Criação e gerenciamento de conexões WhatsApp
+- 💬 **Envio de Mensagens** - API para envio automático de mensagens
+- 🔗 **Webhooks** - Receba eventos em tempo real
+- 📊 **Dashboard Completo** - Métricas, logs e monitoramento
+- 🛡️ **Segurança Avançada** - RLS, autenticação JWT, rate limiting
 
-**Use Lovable**
+### 🏗️ Arquitetura
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/6a122baa-b7b1-47b2-b198-0b8fe0333bbf) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+Frontend (React + TypeScript + Tailwind CSS)
+    ↓
+Supabase Backend
+    ├── Auth (Autenticação)
+    ├── Database (PostgreSQL)
+    ├── Edge Functions (Serverless)
+    └── Real-time (WebSockets)
+    ↓
+Integrações Externas
+    ├── Stripe (Pagamentos)
+    └── Evolution API (WhatsApp)
 ```
 
-**Edit a file directly in GitHub**
+### 💰 Planos de Assinatura
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+#### 📦 Plano Básico - R$ 49/mês
+- 3 instâncias WhatsApp
+- 1.000 mensagens/mês
+- 5 webhooks
+- Suporte por email
 
-**Use GitHub Codespaces**
+#### 🚀 Plano Pro - R$ 149/mês
+- 10 instâncias WhatsApp
+- 10.000 mensagens/mês
+- 20 webhooks
+- Suporte prioritário
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+#### 🏢 Plano Enterprise - Sob consulta
+- Instâncias ilimitadas
+- Mensagens ilimitadas
+- Webhooks ilimitados
+- Suporte dedicado
 
-## What technologies are used for this project?
+## 🛠️ Tecnologias Utilizadas
 
-This project is built with:
+### Frontend
+- **React 18** - Biblioteca para interfaces
+- **TypeScript** - Tipagem estática
+- **Tailwind CSS** - Framework CSS utilitário
+- **shadcn/ui** - Componentes acessíveis
+- **Vite** - Build tool moderna
+- **React Router** - Roteamento SPA
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Backend
+- **Supabase** - Backend-as-a-Service
+- **PostgreSQL** - Banco de dados relacional
+- **Edge Functions** - Serverless functions
+- **Row Level Security** - Segurança de dados
 
-## How can I deploy this project?
+### Integrações
+- **Stripe** - Processamento de pagamentos
+- **Evolution API** - Integração WhatsApp
+- **Deno** - Runtime para Edge Functions
 
-Simply open [Lovable](https://lovable.dev/projects/6a122baa-b7b1-47b2-b198-0b8fe0333bbf) and click on Share -> Publish.
+## 🚀 Como Usar
 
-## Can I connect a custom domain to my Lovable project?
+### Desenvolvimento Local
 
-Yes, you can!
+1. **Clone o repositório:**
+   ```bash
+   git clone <repository-url>
+   cd whatsapi
+   ```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+2. **Instale as dependências:**
+   ```bash
+   npm install
+   ```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+3. **Configure as variáveis de ambiente:**
+   ```bash
+   # Crie um projeto no Supabase
+   # Configure as secrets nas Edge Functions
+   ```
+
+4. **Execute o projeto:**
+   ```bash
+   npm run dev
+   ```
+
+5. **Acesse:** `http://localhost:5173`
+
+### Deploy em Produção
+
+#### Via Lovable (Recomendado)
+1. Clique em "Publish" no editor
+2. Configure domínio personalizado
+3. SSL automático
+
+#### Via Vercel/Netlify
+```bash
+npm run build
+# Deploy do diretório dist/
+```
+
+## 📚 Documentação
+
+- **[Documentação da API](./docs/API.md)** - Guia completo da API
+- **[Guia de Implantação](./docs/DEPLOYMENT.md)** - Passo a passo para produção
+- **[Supabase Docs](https://supabase.com/docs)** - Documentação oficial
+- **[Stripe Docs](https://stripe.com/docs)** - Integração de pagamentos
+
+## 🔧 Configuração
+
+### Supabase Setup
+1. Crie um projeto no [Supabase](https://supabase.com)
+2. Execute as migrations do banco
+3. Configure as políticas RLS
+4. Deploy das Edge Functions
+
+### Stripe Setup
+1. Crie conta no [Stripe](https://stripe.com)
+2. Configure produtos e preços
+3. Configure webhook endpoints
+4. Ative customer portal
+
+### Evolution API Setup
+1. Deploy da Evolution API
+2. Configure autenticação
+3. Teste conexões WhatsApp
+
+## 🛡️ Segurança
+
+- ✅ **Row Level Security (RLS)** - Isolamento de dados por usuário
+- ✅ **JWT Authentication** - Tokens seguros
+- ✅ **HTTPS Only** - Comunicação criptografada
+- ✅ **Rate Limiting** - Proteção contra abuso
+- ✅ **Input Validation** - Validação de dados
+- ✅ **CORS Policy** - Política de origem cruzada
+
+## 📊 Monitoramento
+
+### Métricas Disponíveis
+- Uso de instâncias por usuário
+- Volume de mensagens enviadas
+- Taxa de sucesso de entregas
+- Performance das Edge Functions
+- Erros e logs do sistema
+
+### Alertas Configurados
+- Limite de uso atingido
+- Falhas de conexão
+- Erros de pagamento
+- Performance degradada
+
+## 🤝 Contribuição
+
+1. Fork o projeto
+2. Crie uma branch para sua feature
+3. Commit suas mudanças
+4. Push para a branch
+5. Abra um Pull Request
+
+## 📞 Suporte
+
+- **Email:** suporte@whatsapi.com
+- **Portal do Cliente:** Acesse via dashboard
+- **Documentação:** Links acima
+- **Status:** [status.whatsapi.com]
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+
+---
+
+**Desenvolvido com ❤️ usando Lovable.dev**
