@@ -1,6 +1,6 @@
 import { SystemMonitoring } from '@/components/SystemMonitoring';
-import { Navbar } from '@/components/Navbar';
-import { Footer } from '@/components/Footer';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import { SEO } from '@/components/SEO';
 
 export default function SystemStatus() {

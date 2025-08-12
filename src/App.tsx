@@ -13,6 +13,7 @@ import InstanceDetail from "./pages/InstanceDetail";
 import Webhooks from "./pages/Webhooks";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+import SystemStatus from "./pages/SystemStatus";
 import ResetPassword from "./pages/ResetPassword";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -37,7 +38,8 @@ const App = () => (
               <Route path="/instancias/:id" element={<ProtectedRoute><InstanceDetail /></ProtectedRoute>} />
               <Route path="/webhooks" element={<ProtectedRoute><Webhooks /></ProtectedRoute>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
+          <Route path="/status" element={<SystemStatus />} />
+          <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
         </TooltipProvider>
