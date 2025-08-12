@@ -33,8 +33,11 @@ serve(async (req) => {
       })
     }
 
+    // Normalize API URL to avoid double slashes
+    const normalizedUrl = evolutionApiUrl.replace(/\/+$/, '')
+    
     // Get QR code from Evolution API
-    const response = await fetch(`${evolutionApiUrl}/instance/connect/${instanceName}`, {
+    const response = await fetch(`${normalizedUrl}/instance/connect/${instanceName}`, {
       method: 'GET',
       headers: {
         'apikey': evolutionApiKey,
