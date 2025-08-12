@@ -17,6 +17,9 @@ serve(async (req) => {
     const evolutionApiUrl = Deno.env.get('EVOLUTION_API_URL')
     const evolutionApiKey = Deno.env.get('EVOLUTION_API_KEY')
     
+    console.log('Evolution API URL:', evolutionApiUrl)
+    console.log('Evolution API Key configured:', !!evolutionApiKey)
+    
     if (!evolutionApiUrl || !evolutionApiKey) {
       throw new Error('Evolution API configuration missing')
     }
@@ -39,7 +42,12 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorData = await response.text()
-      console.error('Evolution API error:', errorData)
+      console.error('Evolution API error details:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: `${evolutionApiUrl}/instance/create`,
+        response: errorData
+      })
       throw new Error(`Evolution API error: ${response.status}`)
     }
 
